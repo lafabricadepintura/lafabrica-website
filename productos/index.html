@@ -107,16 +107,15 @@
             return;
         }
 
-        data.forEach(p => {
-            // Extraer datos usando la función de búsqueda simple
+       data.forEach(p => {
             const nombre = buscarColumna(p, "prod");
+            if (!nombre) return; 
+
             const cat = buscarColumna(p, "cat") || "Pintura";
             const desc = buscarColumna(p, "desc");
             const p4 = buscarColumna(p, "4l") || "Cons.";
             const p10 = buscarColumna(p, "10l") || "Cons.";
             const p20 = buscarColumna(p, "20l") || "Cons.";
-
-            if (!nombre) return;
 
             const card = document.createElement('div');
             card.className = 'product-card';
@@ -129,6 +128,25 @@
                     <p style="font-size:0.85rem; color:#bbb; min-height:45px; margin-bottom:15px;">${desc}</p>
                     <table class="price-table">
                         <tr><td style="color:#888">Envase 4 lts</td><td class="amount">${p4}</td></tr>
-                        <tr><td style="color:#888">Envase 10 lts</td><td
+                        <tr><td style="color:#888">Envase 10 lts</td><td class="amount">${p10}</td></tr>
+                        <tr><td style="color:#888">Envase 20 lts</td><td class="amount">${p20}</td></tr>
+                    </table>
+                </div>
+                <a href="https://wa.me/5491100000000" class="btn-whatsapp" target="_blank">Consultar WhatsApp</a>
+            `;
+            cont.appendChild(card);
+        });
+    }
+
+    document.getElementById('searchInput').oninput = (e) => {
+        const term = e.target.value.toLowerCase();
+        render(productsData.filter(p => JSON.stringify(p).toLowerCase().includes(term)));
+    };
+
+    load();
+</script>
+</body>
+</html>
+
 
 
