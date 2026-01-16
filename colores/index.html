@@ -3,22 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Colores | La Fábrica</title>
+    <title>Gama de Colores | La Fábrica</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-        :root { --primary: #1a1a1a; --accent: #8bc34a; --bg: #f8f9fa; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; }
-        header { background: white; padding: 1rem 2rem; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
-        .logo-main { font-weight: bold; text-decoration: none; color: var(--primary); }
-        nav a { text-decoration: none; color: var(--primary); margin-left: 20px; font-weight: 600; font-size: 0.9rem; }
+        :root { --primary: #ffffff; --accent: #8bc34a; --bg: #1e1e1e; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; }
+        header { background: #252525; padding: 1rem 2rem; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.5); display: flex; justify-content: space-between; align-items: center; }
+        .logo-main { font-weight: bold; text-decoration: none; color: white; }
+        nav a { text-decoration: none; color: white; margin-left: 20px; font-weight: 600; font-size: 0.9rem; }
         nav a.active { color: var(--accent); }
-        .search-section { background: var(--primary); padding: 30px 20px; text-align: center; }
-        .search-bar { width: 100%; max-width: 500px; padding: 12px; border-radius: 25px; border: none; outline: none; }
+        .search-section { background: #151515; padding: 30px 20px; text-align: center; }
+        .search-bar { width: 100%; max-width: 500px; padding: 12px; border-radius: 25px; border: 1px solid #333; background: #222; color: white; outline: none; }
         .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
-        .card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s; }
-        .swatch { height: 120px; width: 100%; }
-        .info { padding: 12px; font-size: 0.8rem; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
+        .card { background: #2a2a2a; border-radius: 8px; overflow: hidden; border: 1px solid #333; cursor: pointer; transition: 0.3s; }
+        .card:hover { transform: scale(1.05); border-color: var(--accent); }
+        .swatch { height: 100px; width: 100%; }
+        .info { padding: 10px; font-size: 0.75rem; text-align: center; }
+        h2 { border-left: 5px solid var(--accent); padding-left: 15px; text-transform: uppercase; margin-top: 50px; }
     </style>
 </head>
 <body>
@@ -30,42 +32,44 @@
         </nav>
     </header>
     <section class="search-section">
-        <input type="text" id="search" class="search-bar" placeholder="Buscar color...">
+        <input type="text" id="search" class="search-bar" placeholder="Buscar color por nombre o ID...">
     </section>
     <div class="container" id="main"></div>
 
     <script>
         let rawData = [];
         async function load() {
-            const resp = await fetch('paleta - Hoja 1.csv');
-            const csv = await resp.text();
-            Papa.parse(csv, {
-                header: true,
-                complete: function(res) {
-                    const seen = new Set();
-                    rawData = res.data.filter(i => {
-                        if(!i.color_id || seen.has(i.color_id)) return false;
-                        seen.add(i.color_id); return true;
-                    });
-                    render(rawData);
-                }
-            });
+            try {
+                const resp = await fetch('paleta - Hoja 1.csv');
+                const csv = await resp.text();
+                Papa.parse(csv, {
+                    header: true,
+                    complete: function(res) {
+                        const seen = new Set();
+                        rawData = res.data.filter(i => {
+                            if(!i.color_id || seen.has(i.color_id)) return false;
+                            seen.add(i.color_id); return true;
+                        });
+                        render(rawData);
+                    }
+                });
+            } catch (e) { console.error("Error"); }
         }
 
         function render(data) {
             const main = document.getElementById('main');
             const groups = data.reduce((acc, c) => {
-                const t = c.color_type || 'General';
+                const t = c.color_type || 'Gama General';
                 if(!acc[t]) acc[t] = [];
                 acc[t].push(c); return acc;
             }, {});
             main.innerHTML = Object.keys(groups).map(t => `
-                <h2 style="border-left:5px solid var(--accent); padding-left:10px; margin-top:40px">${t}</h2>
+                <h2>${t}</h2>
                 <div class="grid">${groups[t].map(i => `
                     <div class="card" onclick="navigator.clipboard.writeText('${i.color_hex}')">
                         <div class="swatch" style="background:${i.color_hex}"></div>
                         <div class="info">
-                            <strong>${i.color_name}</strong><br>
+                            <strong style="display:block; margin-bottom:4px;">${i.color_name}</strong>
                             <span style="color:#888">${i.color_hex} | #${i.color_id}</span>
                         </div>
                     </div>
