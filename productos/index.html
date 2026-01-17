@@ -39,9 +39,9 @@
             font-size: 12px; line-height: 1; font-weight: bold;
         }
 
-        .filter-group { margin-bottom: 10px; }
+        .filter-group { margin-bottom: 12px; }
         .filter-container { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; max-width: 1100px; margin: 0 auto; align-items: center; }
-        .filter-badge { padding: 6px 14px; border-radius: 15px; background: #333; font-size: 0.75rem; cursor: pointer; border: 1px solid #444; color: #eee; transition: 0.2s; }
+        .filter-badge { padding: 6px 14px; border-radius: 15px; background: #333; font-size: 0.75rem; cursor: pointer; border: 1px solid #444; color: #eee; transition: 0.2s; text-transform: capitalize; }
         .filter-badge.active { background: var(--accent); color: #000; font-weight: bold; border-color: var(--accent); }
         
         .btn-reset { 
@@ -98,13 +98,9 @@
     let currentCat = "Todos";
     let currentType = "Todos";
 
-    // Función mágica para quitar tildes
     const simplifyText = (text) => {
         if (!text) return "";
-        return text.toString()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .toLowerCase();
+        return text.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     };
 
     function loadCSV() {
@@ -121,11 +117,14 @@
     function createAllBadges() {
         const catSet = new Set();
         const typeSet = new Set();
+        
         rawData.forEach(p => {
-            if (p.Categoría) p.Categoría.split(',').forEach(c => catSet.add(c.trim()));
-            if (p.Tipo) p.Tipo.split(',').forEach(t => typeSet.add(t.trim()));
+            // Separamos por comas y limpiamos espacios para generar badges únicos
+            if (p.Categoría) p.Categoría.split(',').forEach(c => { if(c.trim()) catSet.add(c.trim()); });
+            if (p.Tipo) p.Tipo.split(',').forEach(t => { if(t.trim()) typeSet.add(t.trim()); });
         });
 
+        // Categorías
         const catContainer = document.getElementById("catBadgeContainer");
         let catHtml = `<div class="filter-badge ${currentCat === 'Todos' ? 'active' : ''}" onclick="setCategory('Todos')">Categorías</div>`;
         Array.from(catSet).sort().forEach(c => {
@@ -133,24 +132,33 @@
         });
         catContainer.innerHTML = catHtml;
 
+        // Usos (Interior / Exterior separados)
         const typeContainer = document.getElementById("typeBadgeContainer");
         let typeHtml = `<div class="filter-badge ${currentType === 'Todos' ? 'active' : ''}" onclick="setType('Todos')">Usos</div>`;
         Array.from(typeSet).sort().forEach(t => {
             typeHtml += `<div class="filter-badge ${currentType === t ? 'active' : ''}" onclick="setType('${t}')">${t}</div>`;
         });
-        typeHtml += `<button class="btn-reset" onclick="resetAll()">Limpiar Filtros</button>`;
+        typeHtml += `<button class="btn-reset" onclick="resetAll()">Limpiar</button>`;
         typeContainer.innerHTML = typeHtml;
     }
 
     function setCategory(cat) { currentCat = cat; createAllBadges(); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
     function setType(type) { currentType = type; createAllBadges(); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
     function clearSearch() { document.getElementById("searchInput").value = ""; render(); }
-    function resetAll() { currentCat = "Todos"; currentType = "Todos"; document.getElementById("searchInput").value = ""; createAllBadges(); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    
+    function resetAll() { 
+        currentCat = "Todos"; 
+        currentType = "Todos"; 
+        document.getElementById("searchInput").value = ""; 
+        createAllBadges(); 
+        render(); 
+        window.scrollTo({ top: 0, behavior: 'smooth' }); 
+    }
 
     function render() {
         const container = document.getElementById("productContainer");
         const rawSearch = document.getElementById("searchInput").value;
-        const search = simplifyText(rawSearch); // Normalizamos la búsqueda
+        const search = simplifyText(rawSearch);
         const clearBtn = document.getElementById("clearBtn");
         
         clearBtn.style.display = rawSearch.length > 0 ? "block" : "none";
@@ -159,7 +167,6 @@
         const filtrados = rawData.filter(p => {
             if (!p.Producto) return false;
             
-            // Normalizamos los campos del producto para comparar
             const textoProducto = simplifyText(`${p.Producto} ${p.Categoría} ${p.Descripción} ${p.Tipo} ${p.Color}`);
             const mSearch = textoProducto.includes(search);
             
@@ -170,12 +177,22 @@
         });
 
         filtrados.forEach(p => {
+            // Lógica para separar Categorías en badges individuales
+            const categoriasHTML = p.Categoría ? p.Categoría.split(',').map(cat => 
+                `<span class="tag tag-cat">${cat.trim()}</span>`
+            ).join('') : '';
+
+            // Lógica para separar Tipos (Interior/Exterior) en badges individuales
+            const tiposHTML = p.Tipo ? p.Tipo.split(',').map(tipo => 
+                `<span class="tag">${tipo.trim()}</span>`
+            ).join('') : '';
+
             html += `
                 <div class="product-card">
                     <div class="product-header">
                         <div class="tag-row">
-                            <span class="tag tag-cat">${p.Categoría}</span>
-                            ${p.Tipo ? `<span class="tag">${p.Tipo}</span>` : ''}
+                            ${categoriasHTML}
+                            ${tiposHTML}
                         </div>
                         <h3 style="margin:5px 0; font-size:1.1rem;">${p.Producto}</h3>
                     </div>
