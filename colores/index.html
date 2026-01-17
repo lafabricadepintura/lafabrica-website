@@ -7,20 +7,50 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         :root { --accent: #8bc34a; --bg: #1e1e1e; --card-bg: #2a2a2a; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; padding: 0; }
         
-        header { background: #252525; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 15px rgba(0,0,0,0.5); position: sticky; top: 0; z-index: 1000; }
+        header { 
+            background: #252525; padding: 1rem 2rem; display: flex; 
+            justify-content: space-between; align-items: center; 
+            box-shadow: 0 2px 15px rgba(0,0,0,0.5); position: sticky; 
+            top: 0; z-index: 1000; margin: 0; 
+        }
         .logo-main { font-weight: bold; text-decoration: none; color: white; font-size: 1.2rem; }
         nav a { text-decoration: none; color: #bbb; margin-left: 20px; font-weight: 600; font-size: 0.9rem; }
         nav a.active { color: var(--accent); }
 
-        .search-section { background: #151515; padding: 20px; text-align: center; position: sticky; top: 55px; z-index: 999; }
-        .search-bar { width: 100%; max-width: 500px; padding: 12px 20px; border-radius: 25px; border: 1px solid #333; background: #222; color: white; outline: none; margin-bottom: 15px; font-size: 1rem; }
-        .search-bar:focus { border-color: var(--accent); }
+        .search-section { 
+            background: #151515; padding: 20px; text-align: center; 
+            position: sticky; top: 57px; z-index: 999; margin: 0;
+            border-top: 1px solid #222;
+        }
 
-        .filter-container { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; max-width: 1100px; margin: 0 auto; }
-        .filter-badge { padding: 8px 18px; border-radius: 20px; background: #333; font-size: 0.8rem; cursor: pointer; border: 1px solid #444; color: #eee; text-transform: capitalize; }
+        .search-container { position: relative; max-width: 500px; margin: 0 auto 15px; }
+        .search-bar { 
+            width: 100%; padding: 12px 45px 12px 20px; border-radius: 25px; 
+            border: 1px solid #333; background: #222; color: white; outline: none; 
+            font-size: 1rem; box-sizing: border-box;
+        }
+        .search-bar:focus { border-color: var(--accent); }
+        
+        .clear-search {
+            position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+            background: #444; color: white; border: none; border-radius: 50%;
+            width: 22px; height: 22px; cursor: pointer; display: none;
+            font-size: 12px; line-height: 1; font-weight: bold;
+        }
+
+        .filter-container { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; max-width: 1100px; margin: 0 auto; align-items: center; }
+        .filter-badge { padding: 8px 18px; border-radius: 20px; background: #333; font-size: 0.8rem; cursor: pointer; border: 1px solid #444; color: #eee; text-transform: capitalize; transition: 0.2s; }
+        .filter-badge:hover { background: #444; }
         .filter-badge.active { background: var(--accent); color: #000; font-weight: bold; border-color: var(--accent); }
+        
+        .btn-reset { 
+            padding: 8px 15px; border-radius: 20px; background: transparent; 
+            color: #ff5252; border: 1px solid #ff5252; cursor: pointer; 
+            font-size: 0.75rem; font-weight: bold; margin-left: 10px; transition: 0.3s;
+        }
+        .btn-reset:hover { background: #ff5252; color: white; }
 
         .container { max-width: 1300px; margin: 20px auto; padding: 0 20px; min-height: 100vh; }
         .sub-section { margin-bottom: 40px; }
@@ -28,7 +58,8 @@
         .sub-title::after { content: ""; flex: 1; height: 1px; background: #444; margin-left: 15px; }
 
         .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
-        .color-card { background: var(--card-bg); border-radius: 10px; overflow: hidden; border: 1px solid #333; transition: 0.2s; position: relative; }
+        .color-card { background: var(--card-bg); border-radius: 10px; overflow: hidden; border: 1px solid #333; position: relative; transition: transform 0.2s; }
+        .color-card:hover { transform: translateY(-3px); border-color: #555; }
         .color-sample { height: 100px; width: 100%; position: relative; }
         .popular-tag { background: var(--accent); color: #000; font-size: 9px; padding: 2px 5px; font-weight: bold; position: absolute; top: 0; left: 0; border-bottom-right-radius: 5px; }
         .color-info { padding: 10px; text-align: center; }
@@ -47,7 +78,10 @@
 </header>
 
 <section class="search-section">
-    <input type="text" id="colorSearch" class="search-bar" placeholder="Buscar color por nombre o código...">
+    <div class="search-container">
+        <input type="text" id="colorSearch" class="search-bar" placeholder="Buscar color o código...">
+        <button id="clearBtn" class="clear-search" onclick="clearSearch()">✕</button>
+    </div>
     <div class="filter-container" id="badgesSpace"></div>
 </section>
 
@@ -55,7 +89,7 @@
 
 <script>
     let colorData = [];
-    let activeFamily = "Blanco"; 
+    let activeFamily = null; 
 
     function loadCSV() {
         Papa.parse("paleta - Hoja 1.csv", {
@@ -88,76 +122,98 @@
         });
 
         const container = document.getElementById("badgesSpace");
-        container.innerHTML = "";
+        let html = families.map(f => 
+            `<div class="filter-badge ${f === activeFamily ? 'active' : ''}" onclick="selectBadge('${f}', this)">${f}</div>`
+        ).join('');
         
-        families.forEach(family => {
-            const div = document.createElement("div");
-            div.className = "filter-badge" + (family === activeFamily ? " active" : "");
-            div.innerText = family;
-            div.onclick = function() {
-                activeFamily = family;
-                document.getElementById("colorSearch").value = ""; // Limpiar busqueda al cambiar categoria
-                document.querySelectorAll('.filter-badge').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                renderStructured();
-            };
-            container.appendChild(div);
-        });
+        html += `<button class="btn-reset" onclick="resetAll()">Limpiar</button>`;
+        container.innerHTML = html;
+    }
+
+    function selectBadge(f, el) {
+        activeFamily = f;
+        document.querySelectorAll('.filter-badge').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+        
+        // Efecto subir arriba del todo
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        renderStructured();
+    }
+
+    function clearSearch() {
+        document.getElementById("colorSearch").value = "";
+        renderStructured();
+    }
+
+    function resetAll() {
+        activeFamily = null;
+        document.getElementById("colorSearch").value = "";
+        createFamilyBadges();
+        
+        // Efecto subir arriba del todo
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        renderStructured();
     }
 
     function renderStructured() {
         const container = document.getElementById("mainRenderSpace");
-        const search = document.getElementById("colorSearch").value.toLowerCase();
+        const search = document.getElementById("colorSearch").value.trim().toLowerCase();
+        const clearBtn = document.getElementById("clearBtn");
+        clearBtn.style.display = search.length > 0 ? "block" : "none";
         container.innerHTML = "";
 
+        // CASO 1: BÚSQUEDA
         if (search.length > 0) {
-            // MODO BUSQUEDA GLOBAL
-            const filtrados = colorData.filter(c => 
-                c.color_name.toLowerCase().includes(search) || 
-                c.color_id.toLowerCase().includes(search)
-            ).slice(0, 200);
+            let baseData = activeFamily ? colorData.filter(c => getFamily(c.color_type) === activeFamily) : colorData;
+            const filtrados = baseData.filter(c => 
+                (c.color_name && c.color_name.toLowerCase().includes(search)) || 
+                (c.color_id && c.color_id.toLowerCase().includes(search))
+            ).slice(0, 300);
 
-            let html = `<div class="sub-title">RESULTADOS DE BÚSQUEDA</div><div class="color-grid">`;
-            filtrados.forEach(c => html += generateCard(c));
-            html += `</div>`;
-            container.innerHTML = html;
-        } else {
-            // MODO POR CATEGORIA Y SUBTIPOS
-            let subtiposReales = [...new Set(colorData
-                .filter(c => getFamily(c.color_type) === activeFamily)
-                .map(c => c.color_type.trim())
-            )];
-
-            subtiposReales.sort((a, b) => {
-                const getRank = (s) => {
-                    if (s.toLowerCase().includes("popular")) return 1;
-                    if (s.toLowerCase().includes("soft")) return 3;
-                    return 2;
-                };
-                return getRank(a) - getRank(b);
-            });
-
-            subtiposReales.forEach(sub => {
-                const colores = colorData.filter(c => c.color_type.trim() === sub);
-                if (colores.length > 0) {
-                    const section = document.createElement("div");
-                    section.className = "sub-section";
-                    let html = `<div class="sub-title">${sub}</div><div class="color-grid">`;
-                    colores.forEach(c => html += generateCard(c));
-                    html += `</div>`;
-                    section.innerHTML = html;
-                    container.appendChild(section);
-                }
-            });
+            container.innerHTML = `<div class="sub-title">Resultados: ${search}</div><div class="color-grid">${filtrados.map(c => generateCard(c)).join('')}</div>`;
+            return;
         }
+
+        // CASO 2: VISTA POPULARES (Default)
+        if (activeFamily === null) {
+            const populares = colorData.filter(c => c.color_type.toLowerCase().includes("popular"));
+            const familiasPop = [...new Set(populares.map(c => getFamily(c.color_type)))].sort();
+            
+            container.innerHTML = `<div class="sub-title">Colores Destacados (Más Populares)</div>`;
+            familiasPop.forEach(f => {
+                const cols = populares.filter(c => getFamily(c.color_type) === f);
+                let html = `<div class="sub-section"><div class="sub-title" style="font-size:0.8rem; opacity:0.7">${f}</div><div class="color-grid">`;
+                cols.forEach(c => html += generateCard(c));
+                html += `</div></div>`;
+                container.innerHTML += html;
+            });
+            return;
+        }
+
+        // CASO 3: CATEGORÍA POR SUBTIPOS
+        let dataBadge = colorData.filter(c => getFamily(c.color_type) === activeFamily);
+        let subtipos = [...new Set(dataBadge.map(c => c.color_type.trim()))].sort((a,b) => {
+            const rank = (s) => s.toLowerCase().includes("popular") ? 1 : (s.toLowerCase().includes("soft") ? 3 : 2);
+            return rank(a) - rank(b);
+        });
+
+        subtipos.forEach(sub => {
+            const colores = dataBadge.filter(c => c.color_type.trim() === sub);
+            let html = `<div class="sub-section"><div class="sub-title">${sub}</div><div class="color-grid">`;
+            colores.forEach(c => html += generateCard(c));
+            html += `</div></div>`;
+            container.innerHTML += html;
+        });
     }
 
     function generateCard(c) {
-        const esPopular = c.color_type.toLowerCase().includes("popular");
+        const esPop = c.color_type && c.color_type.toLowerCase().includes("popular");
         return `
-            <div class="color-card" ${esPopular ? 'style="border-color:var(--accent)"' : ''}>
+            <div class="color-card" ${esPop ? 'style="border-color:var(--accent)"' : ''}>
                 <div class="color-sample" style="background-color: ${c.color_hex}">
-                    ${esPopular ? '<span class="popular-tag">★ POPULAR</span>' : ''}
+                    ${esPop ? '<span class="popular-tag">★ POPULAR</span>' : ''}
                 </div>
                 <div class="color-info">
                     <span class="color-name">${c.color_name}</span>
