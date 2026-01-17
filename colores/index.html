@@ -25,11 +25,11 @@
         .sub-title::after { content: ""; flex: 1; height: 1px; background: #444; margin-left: 15px; }
 
         .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
-        .color-card { background: var(--card-bg); border-radius: 10px; overflow: hidden; border: 1px solid #333; transition: 0.2s; position: relative; }
+        .color-card { background: var(--card-bg); border-radius: 10px; overflow: hidden; border: 1px solid #333; position: relative; }
         .color-sample { height: 100px; width: 100%; position: relative; }
         .popular-tag { background: var(--accent); color: #000; font-size: 9px; padding: 2px 5px; font-weight: bold; position: absolute; top: 0; left: 0; border-bottom-right-radius: 5px; }
         .color-info { padding: 10px; text-align: center; }
-        .color-name { font-weight: bold; font-size: 0.75rem; display: block; height: 32px; overflow: hidden; line-height: 1.2; }
+        .color-name { font-weight: bold; font-size: 0.75rem; display: block; height: 32px; overflow: hidden; }
         .color-id { font-size: 0.65rem; color: #888; margin-top: 5px; display: block; }
     </style>
 </head>
@@ -64,27 +64,27 @@
         });
     }
 
-    // Función de limpieza de familia mejorada
+    // LIMPIEZA MEJORADA: Ignora mayúsculas/minúsculas al limpiar
     function getFamily(type) {
         if (!type) return "";
-        let t = type;
-        // Si es Neutros, no importa lo que diga después
-        if (t.includes("Neutros")) return "Neutros";
+        let t = type.trim();
+        if (t.toLowerCase().includes("neutros")) return "Neutros";
         
-        // Eliminamos palabras descriptivas para quedarnos con la base
-        // Usamos expresiones regulares para limpiar "Popular" y "Soft" sin importar donde estén
-        return t.replace(/Popular/g, "").replace(/Soft/g, "").trim();
+        // El uso de /regex/i hace que sea insensible a mayúsculas (case-insensitive)
+        return t.replace(/popular/i, "").replace(/soft/i, "").trim();
     }
 
     function createFamilyBadges() {
-        // Obtenemos familias únicas limpias
-        const families = [...new Set(colorData.map(c => getFamily(c.color_type)))]
-                            .filter(f => f)
-                            .sort((a, b) => {
-                                // Forzamos a Blanco y Neutros al principio
-                                if(a === "Blanco" || a === "Neutros") return -1;
-                                return a.localeCompare(b);
-                            });
+        const familyMap = new Set();
+        colorData.forEach(c => {
+            const f = getFamily(c.color_type);
+            if(f) familyMap.add(f);
+        });
+
+        const families = Array.from(familyMap).sort((a, b) => {
+            if(a === "Blanco" || a === "Neutros") return -1;
+            return a.localeCompare(b);
+        });
 
         const container = document.getElementById("badgesSpace");
         container.innerHTML = "";
@@ -107,23 +107,27 @@
         const container = document.getElementById("mainRenderSpace");
         container.innerHTML = "";
 
-        // Definimos subtítulos a buscar según la familia activa
-        let subtitulos = [
-            activeFamily + " Popular", 
-            activeFamily,              
-            "Soft " + activeFamily     
-        ];
+        // Usamos una comparación flexible para renderizar los subtítulos
+        // Buscamos en la data los color_type que "contengan" las palabras clave
+        const subOrden = ["popular", "base", "soft"];
+        
+        let subtiposReales = [...new Set(colorData
+            .filter(c => getFamily(c.color_type) === activeFamily)
+            .map(c => c.color_type.trim())
+        )];
 
-        // Manejo específico de la familia Neutros para incluir Cálidos y Fríos
-        if (activeFamily === "Neutros") {
-            subtitulos = [
-                "Neutros Cálidos Popular", "Neutros Cálidos", "Soft Neutros Cálidos",
-                "Neutros Fríos Popular", "Neutros Fríos", "Soft Neutros Fríos"
-            ];
-        }
+        // Ordenamos los subtipos encontrados según tu jerarquía
+        subtiposReales.sort((a, b) => {
+            const getRank = (s) => {
+                if (s.toLowerCase().includes("popular")) return 1;
+                if (s.toLowerCase().includes("soft")) return 3;
+                return 2;
+            };
+            return getRank(a) - getRank(b);
+        });
 
-        subtitulos.forEach(sub => {
-            const colores = colorData.filter(c => c.color_type === sub);
+        subtiposReales.forEach(sub => {
+            const colores = colorData.filter(c => c.color_type.trim() === sub);
             
             if (colores.length > 0) {
                 const section = document.createElement("div");
@@ -133,7 +137,7 @@
                 html += `<div class="color-grid">`;
                 
                 colores.forEach(c => {
-                    const esPopular = c.color_type.includes("Popular");
+                    const esPopular = c.color_type.toLowerCase().includes("popular");
                     html += `
                         <div class="color-card" ${esPopular ? 'style="border-color:var(--accent)"' : ''}>
                             <div class="color-sample" style="background-color: ${c.color_hex}">
