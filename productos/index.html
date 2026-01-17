@@ -8,26 +8,32 @@
     <style>
         :root { --accent: #8bc34a; --bg: #1e1e1e; --card-bg: #2a2a2a; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; }
-        header { background: #252525; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-        .logo-main { font-weight: bold; text-decoration: none; color: white; }
         
-        /* Buscador y Badges */
+        /* NAVBAR CORREGIDA */
+        header { 
+            background: #252525; padding: 1rem 2rem; display: flex; 
+            justify-content: space-between; align-items: center; 
+            box-shadow: 0 2px 15px rgba(0,0,0,0.5); position: sticky; top: 0; z-index: 1000;
+        }
+        .logo-main { font-weight: bold; text-decoration: none; color: white; font-size: 1.2rem; }
+        nav a { text-decoration: none; color: #bbb; margin-left: 20px; font-weight: 600; font-size: 0.9rem; transition: 0.3s; }
+        nav a:hover, nav a.active { color: var(--accent); }
+
         .search-section { background: #151515; padding: 20px; text-align: center; }
         .search-bar { width: 100%; max-width: 500px; padding: 12px 20px; border-radius: 25px; border: 1px solid #333; background: #222; color: white; outline: none; margin-bottom: 15px; }
         
-        .filter-container { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; max-width: 800px; margin: 0 auto; }
-        .filter-badge { padding: 8px 16px; border-radius: 20px; background: #333; font-size: 0.8rem; cursor: pointer; border: 1px solid #444; transition: 0.3s; }
-        .filter-badge:hover { background: #444; }
-        .filter-badge.active { background: var(--accent); color: #000; font-weight: bold; border-color: var(--accent); }
+        .filter-container { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; max-width: 1000px; margin: 0 auto; }
+        .filter-badge { padding: 6px 14px; border-radius: 20px; background: #333; font-size: 0.75rem; cursor: pointer; border: 1px solid #444; color: #bbb; }
+        .filter-badge.active { background: var(--accent); color: #000; font-weight: bold; }
 
         .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
         .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         .product-card { background: var(--card-bg); border-radius: 12px; overflow: hidden; border: 1px solid #333; display: flex; flex-direction: column; }
-        .product-header { padding: 15px; background: #333; }
+        .product-header { padding: 15px; background: #333; border-bottom: 1px solid #444; }
         .price-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .price-table td { padding: 8px 0; border-top: 1px solid #3d3d3d; font-size: 0.9rem; }
+        .price-table td { padding: 10px 0; border-top: 1px solid #3d3d3d; font-size: 0.9rem; }
         .amount { text-align: right; font-weight: bold; color: var(--accent); }
-        .btn-whatsapp { display: block; background: #25d366; color: white; text-align: center; padding: 12px; text-decoration: none; font-weight: bold; font-size: 0.8rem; }
+        .btn-whatsapp { display: block; background: #25d366; color: white; text-align: center; padding: 12px; text-decoration: none; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -42,14 +48,13 @@
 
 <section class="search-section">
     <input type="text" id="searchInput" class="search-bar" placeholder="Buscar producto...">
-    <div class="filter-container" id="filterBadges">
+    <div class="filter-container">
         <div class="filter-badge active" data-cat="Todos">Todos</div>
         <div class="filter-badge" data-cat="Látex">Látex</div>
         <div class="filter-badge" data-cat="Impermeabilizante">Muros</div>
         <div class="filter-badge" data-cat="Techos">Techos</div>
         <div class="filter-badge" data-cat="Sintético">Sintéticos</div>
         <div class="filter-badge" data-cat="Maderas">Maderas</div>
-        <div class="filter-badge" data-cat="Pisos">Pisos</div>
     </div>
 </section>
 
@@ -58,59 +63,62 @@
 </div>
 
 <script>
-    var datos = [];
-    var catActual = 'Todos';
+    let rawData = [];
+    let currentCat = "Todos";
 
-    function cargar() {
+    function loadCSV() {
         Papa.parse("productos.csv", {
             download: true, header: true, skipEmptyLines: true,
-            complete: function(res) {
-                datos = res.data;
-                dibujar();
+            complete: function(results) {
+                rawData = results.data;
+                render();
             }
         });
     }
 
-    function filtrarCategoria(cat, el) {
-        catActual = cat;
-        document.querySelectorAll('.filter-badge').forEach(b => b.classList.remove('active'));
-        el.classList.add('active');
-        dibujar();
+    function render() {
+        const container = document.getElementById("productContainer");
+        const search = document.getElementById("searchInput").value.toLowerCase();
+        let html = "";
+
+        rawData.filter(p => {
+            if (!p.Producto) return false;
+            const mSearch = p.Producto.toLowerCase().includes(search) || p.Descripción.toLowerCase().includes(search);
+            const mCat = (currentCat === "Todos" || p.Categoría.includes(currentCat));
+            return mSearch && mCat;
+        }).forEach(p => {
+            html += `
+                <div class="product-card">
+                    <div class="product-header">
+                        <div style="color:var(--accent); font-size:0.6rem; font-weight:bold;">${p.Categoría}</div>
+                        <h3 style="margin:5px 0; font-size:1.1rem;">${p.Producto}</h3>
+                    </div>
+                    <div style="padding:15px; flex-grow:1;">
+                        <p style="font-size:0.8rem; color:#aaa; margin-bottom:10px;">${p.Descripción}</p>
+                        <table class="price-table">
+                            <tr><td>Balde de 4 Lts</td><td class="amount">${p["Precio 4lts"]}</td></tr>
+                            <tr><td>Balde de 10 Lts</td><td class="amount">${p["Precio 10lts"]}</td></tr>
+                            <tr><td>Balde de 20 Lts</td><td class="amount">${p["Precio 20lts"]}</td></tr>
+                        </table>
+                    </div>
+                    <a href="https://wa.me/542214989579" class="btn-whatsapp" target="_blank">WHATSAPP</a>
+                </div>`;
+        });
+        container.innerHTML = html;
     }
 
-    function dibujar() {
-        var busqueda = document.getElementById("searchInput").value.toLowerCase();
-        var html = "";
-        
-        var filtrados = datos.filter(function(p) {
-            var matchCat = (catActual === 'Todos' || (p.Categoría || "").includes(catActual));
-            var matchBusqueda = (p.Producto || "").toLowerCase().includes(busqueda);
-            return matchCat && matchBusqueda;
-        });
+    document.querySelectorAll('.filter-badge').forEach(b => {
+        b.onclick = function() {
+            document.querySelectorAll('.filter-badge').forEach(x => x.classList.remove('active'));
+            this.classList.add('active');
+            currentCat = this.dataset.cat;
+            render();
+        };
+    });
 
-        filtrados.forEach(function(p) {
-            if(!p.Producto) return;
-            html += '<div class="product-card">';
-            html += '<div class="product-header"><span style="color:var(--accent); font-size:0.7rem; font-weight:bold; text-transform:uppercase">' + p.Categoría + '</span>';
-            html += '<h3 style="margin:5px 0; font-size:1.1rem">' + p.Producto + '</h3></div>';
-            html += '<div style="padding:15px; flex-grow:1">';
-            html += '<p style="font-size:0.8rem; color:#aaa; margin-bottom:10px">' + p.Descripción + '</p>';
-            html += '<table class="price-table">';
-            html += '<tr><td>Balde 4L</td><td class="amount">' + p["Precio 4lts"] + '</td></tr>';
-            html += '<tr><td>Balde 10L</td><td class="amount">' + p["Precio 10lts"] + '</td></tr>';
-            html += '<tr><td>Balde 20L</td><td class="amount">' + p["Precio 20lts"] + '</td></tr>';
-            html += '</table></div>';
-            html += '<a href="https://wa.me/5492214989579" class="btn-whatsapp" target="_blank">CONSULTAR POR WHATSAPP</a></div>';
-        });
-        document.getElementById("productContainer").innerHTML = html;
-    }
-
-    document.getElementById("searchInput").oninput = dibujar;
-    cargar();
+    document.getElementById("searchInput").oninput = render;
+    window.onload = loadCSV;
 </script>
 </body>
 </html>
-
-
-
 
