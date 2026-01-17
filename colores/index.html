@@ -9,29 +9,25 @@
         :root { --accent: #8bc34a; --bg: #1e1e1e; --card-bg: #2a2a2a; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; }
         
-        header { 
-            background: #252525; padding: 1rem 2rem; display: flex; 
-            justify-content: space-between; align-items: center; 
-            box-shadow: 0 2px 15px rgba(0,0,0,0.5); position: sticky; top: 0; z-index: 1000;
-        }
+        header { background: #252525; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 15px rgba(0,0,0,0.5); position: sticky; top: 0; z-index: 1000; }
         .logo-main { font-weight: bold; text-decoration: none; color: white; font-size: 1.2rem; }
-        nav a { text-decoration: none; color: #bbb; margin-left: 20px; font-weight: 600; font-size: 0.9rem; transition: 0.3s; }
-        nav a:hover, nav a.active { color: var(--accent); }
+        nav a { text-decoration: none; color: #bbb; margin-left: 20px; font-weight: 600; font-size: 0.9rem; }
+        nav a.active { color: var(--accent); }
 
         .search-section { background: #151515; padding: 20px; text-align: center; }
-        .search-bar { width: 100%; max-width: 500px; padding: 12px 20px; border-radius: 25px; border: 1px solid #333; background: #222; color: white; outline: none; margin-bottom: 15px; }
-        
-        .filter-container { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; max-width: 1000px; margin: 0 auto; }
-        .filter-badge { padding: 8px 16px; border-radius: 20px; background: #333; font-size: 0.75rem; cursor: pointer; border: 1px solid #444; color: #bbb; transition: 0.2s; }
-        .filter-badge:hover { background: #444; }
+        .filter-container { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; max-width: 1100px; margin: 15px auto 0; }
+        .filter-badge { padding: 8px 18px; border-radius: 20px; background: #333; font-size: 0.8rem; cursor: pointer; border: 1px solid #444; color: #eee; text-transform: capitalize; }
         .filter-badge.active { background: var(--accent); color: #000; font-weight: bold; border-color: var(--accent); }
 
-        .container { max-width: 1300px; margin: 30px auto; padding: 0 20px; }
+        .container { max-width: 1300px; margin: 20px auto; padding: 0 20px; }
+        .sub-section { margin-bottom: 40px; }
+        .sub-title { color: var(--accent); font-size: 1.1rem; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; font-weight: bold; }
+        .sub-title::after { content: ""; flex: 1; height: 1px; background: #444; margin-left: 15px; }
+
         .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
-        
-        .color-card { background: var(--card-bg); border-radius: 10px; overflow: hidden; border: 1px solid #333; transition: 0.2s; }
-        .color-card:hover { transform: scale(1.05); z-index: 10; border-color: white; }
-        .color-sample { height: 100px; width: 100%; }
+        .color-card { background: var(--card-bg); border-radius: 10px; overflow: hidden; border: 1px solid #333; transition: 0.2s; position: relative; }
+        .color-sample { height: 100px; width: 100%; position: relative; }
+        .popular-tag { background: var(--accent); color: #000; font-size: 9px; padding: 2px 5px; font-weight: bold; position: absolute; top: 0; left: 0; border-bottom-right-radius: 5px; }
         .color-info { padding: 10px; text-align: center; }
         .color-name { font-weight: bold; font-size: 0.75rem; display: block; height: 32px; overflow: hidden; line-height: 1.2; }
         .color-id { font-size: 0.65rem; color: #888; margin-top: 5px; display: block; }
@@ -48,80 +44,115 @@
 </header>
 
 <section class="search-section">
-    <input type="text" id="colorSearch" class="search-bar" placeholder="Busca color por nombre o código (ej: 3154)...">
-    <div class="filter-container" id="badgesSpace">
-        <div class="filter-badge active" onclick="setFilter('Todos', this)">Todos</div>
-        </div>
+    <div class="filter-container" id="badgesSpace"></div>
 </section>
 
-<div class="container">
-    <div id="colorContainer" class="color-grid"></div>
-</div>
+<div class="container" id="mainRenderSpace"></div>
 
 <script>
     let colorData = [];
-    let currentType = "Todos";
+    let activeFamily = "Blanco"; 
 
     function loadCSV() {
-        // Usa el nombre exacto de tu archivo subido
         Papa.parse("paleta - Hoja 1.csv", {
-            download: true,
-            header: true,
-            skipEmptyLines: true,
+            download: true, header: true, skipEmptyLines: true,
             complete: function(results) {
                 colorData = results.data;
-                createBadges();
-                render();
+                createFamilyBadges();
+                renderStructured();
             }
         });
     }
 
-    function createBadges() {
-        const types = [...new Set(colorData.map(item => item.color_type))].filter(t => t);
+    // Función de limpieza de familia mejorada
+    function getFamily(type) {
+        if (!type) return "";
+        let t = type;
+        // Si es Neutros, no importa lo que diga después
+        if (t.includes("Neutros")) return "Neutros";
+        
+        // Eliminamos palabras descriptivas para quedarnos con la base
+        // Usamos expresiones regulares para limpiar "Popular" y "Soft" sin importar donde estén
+        return t.replace(/Popular/g, "").replace(/Soft/g, "").trim();
+    }
+
+    function createFamilyBadges() {
+        // Obtenemos familias únicas limpias
+        const families = [...new Set(colorData.map(c => getFamily(c.color_type)))]
+                            .filter(f => f)
+                            .sort((a, b) => {
+                                // Forzamos a Blanco y Neutros al principio
+                                if(a === "Blanco" || a === "Neutros") return -1;
+                                return a.localeCompare(b);
+                            });
+
         const container = document.getElementById("badgesSpace");
-        types.forEach(type => {
+        container.innerHTML = "";
+        
+        families.forEach(family => {
             const div = document.createElement("div");
-            div.className = "filter-badge";
-            div.innerText = type;
-            div.onclick = function() { setFilter(type, this); };
+            div.className = "filter-badge" + (family === activeFamily ? " active" : "");
+            div.innerText = family;
+            div.onclick = function() {
+                activeFamily = family;
+                document.querySelectorAll('.filter-badge').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                renderStructured();
+            };
             container.appendChild(div);
         });
     }
 
-    function setFilter(type, el) {
-        currentType = type;
-        document.querySelectorAll('.filter-badge').forEach(b => b.classList.remove('active'));
-        el.classList.add('active');
-        render();
-    }
+    function renderStructured() {
+        const container = document.getElementById("mainRenderSpace");
+        container.innerHTML = "";
 
-    function render() {
-        const container = document.getElementById("colorContainer");
-        const search = document.getElementById("colorSearch").value.toLowerCase();
-        let html = "";
+        // Definimos subtítulos a buscar según la familia activa
+        let subtitulos = [
+            activeFamily + " Popular", 
+            activeFamily,              
+            "Soft " + activeFamily     
+        ];
 
-        // Limitamos a 500 resultados por vez para que el navegador no sufra
-        const filtered = colorData.filter(c => {
-            if (!c.color_name) return false;
-            const mSearch = c.color_name.toLowerCase().includes(search) || c.color_id.toLowerCase().includes(search);
-            const mType = (currentType === "Todos" || c.color_type === currentType);
-            return mSearch && mType;
-        }).slice(0, 500); 
+        // Manejo específico de la familia Neutros para incluir Cálidos y Fríos
+        if (activeFamily === "Neutros") {
+            subtitulos = [
+                "Neutros Cálidos Popular", "Neutros Cálidos", "Soft Neutros Cálidos",
+                "Neutros Fríos Popular", "Neutros Fríos", "Soft Neutros Fríos"
+            ];
+        }
 
-        filtered.forEach(c => {
-            html += `
-                <div class="color-card">
-                    <div class="color-sample" style="background-color: ${c.color_hex}"></div>
-                    <div class="color-info">
-                        <span class="color-name">${c.color_name}</span>
-                        <span class="color-id">Cód: ${c.color_id}</span>
-                    </div>
-                </div>`;
+        subtitulos.forEach(sub => {
+            const colores = colorData.filter(c => c.color_type === sub);
+            
+            if (colores.length > 0) {
+                const section = document.createElement("div");
+                section.className = "sub-section";
+                
+                let html = `<div class="sub-title">${sub}</div>`;
+                html += `<div class="color-grid">`;
+                
+                colores.forEach(c => {
+                    const esPopular = c.color_type.includes("Popular");
+                    html += `
+                        <div class="color-card" ${esPopular ? 'style="border-color:var(--accent)"' : ''}>
+                            <div class="color-sample" style="background-color: ${c.color_hex}">
+                                ${esPopular ? '<span class="popular-tag">★ POPULAR</span>' : ''}
+                            </div>
+                            <div class="color-info">
+                                <span class="color-name">${c.color_name}</span>
+                                <span class="color-id">Cód: ${c.color_id}</span>
+                            </div>
+                        </div>`;
+                });
+                
+                html += `</div>`;
+                section.innerHTML = html;
+                container.appendChild(section);
+            }
         });
-        container.innerHTML = html || '<p style="grid-column:1/-1; text-align:center;">No se encontraron colores.</p>';
     }
 
-    document.getElementById("colorSearch").oninput = render;
     window.onload = loadCSV;
 </script>
 </body>
