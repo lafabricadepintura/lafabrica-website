@@ -63,7 +63,6 @@
         .color-name { font-weight: bold; font-size: 0.75rem; display: block; height: 32px; overflow: hidden; line-height: 1.2; }
         .color-id { font-size: 0.65rem; color: #888; margin-top: 5px; display: block; }
 
-        /* MODAL DE ACCIÓN */
         .modal-overlay { 
             position: fixed; top:0; left:0; width:100%; height:100%; 
             background: rgba(0,0,0,0.9); z-index: 2000; display: none; 
@@ -141,12 +140,10 @@
         return text.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     };
 
-    // INICIO: Carga productos y paleta
     function init() {
         Papa.parse("../productos/productos.csv", {
             download: true, header: true, skipEmptyLines: true,
             complete: function(resProd) {
-                // Filtramos productos que admitan "Color"
                 productData = resProd.data.filter(p => p.Color && p.Color.toLowerCase().includes("color"));
                 
                 Papa.parse("paleta - Hoja 1.csv", {
@@ -210,7 +207,6 @@
         renderStructured();
     }
 
-    // RENDERIZADO CON TU LÓGICA DE SUBTIPOS
     function renderStructured() {
         const container = document.getElementById("mainRenderSpace");
         const rawSearch = document.getElementById("colorSearch").value.trim();
@@ -262,7 +258,6 @@
 
     function generateCard(c) {
         const esPop = c.color_type && c.color_type.toLowerCase().includes("popular");
-        // Escapamos el objeto para el onclick
         const colorJson = JSON.stringify(c).replace(/"/g, '&quot;');
         return `
             <div class="color-card" onclick="openColorModal(${colorJson})" ${esPop ? 'style="border-color:var(--accent)"' : ''}>
@@ -276,7 +271,6 @@
             </div>`;
     }
 
-    // FUNCIONES DEL MODAL
     function openColorModal(color) {
         selectedColor = color;
         document.getElementById('modalTitle').innerText = color.color_name;
@@ -308,4 +302,5 @@
     window.onload = init;
 </script>
 </body>
+
 </html>
