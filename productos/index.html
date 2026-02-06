@@ -91,21 +91,21 @@
 
 <script>
     let rawData = [];
-    let paletteData = []; // Aquí guardaremos los colores del otro CSV
+    let paletteData = [];
     let cart = [];
     let currentCat = "Todos";
     let currentType = "Todos";
 
     const simplifyText = (text) => text ? text.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
 
-    // CARGA DE AMBOS CSVS
+   
     function init() {
-        // Cargar Colores primero
+      
         Papa.parse("../colores/paleta - Hoja 1.csv", {
             download: true, header: true, skipEmptyLines: true,
             complete: function(results) {
                 paletteData = results.data;
-                // Luego cargar Productos
+             
                 loadProducts();
             }
         });
@@ -195,15 +195,15 @@
             const cats = p.Categoría.split(',').map(c => `<span class="tag tag-cat">${c.trim()}</span>`).join('');
             const types = p.Tipo.split(',').map(t => `<span class="tag">${t.trim()}</span>`).join('');
 
-            // LÓGICA DINÁMICA DE COLOR
+         
             let colorHTML = "";
             if (p.Color === "Color") {
-                // Si el producto dice "Color", cargamos TODOS los colores de la paleta
+               
                 const opciones = paletteData.map(c => `<option value="${c.color_name}">${c.color_name} (${c.color_id})</option>`).join('');
                 colorHTML = `<label class="input-label">Elegir de la Paleta:</label>
                              <select id="color-${index}" class="selector-estilo">${opciones}</select>`;
             } else if (p.Color) {
-                // Si tiene colores específicos en el CSV de productos, usamos esos
+               
                 const especificos = p.Color.split(',').map(c => `<option value="${c.trim()}">${c.trim()}</option>`).join('');
                 colorHTML = `<label class="input-label">Color:</label>
                              <select id="color-${index}" class="selector-estilo">${especificos}</select>`;
@@ -237,7 +237,8 @@
     }
 
     document.getElementById("searchInput").oninput = render;
-    window.onload = init; // Llamamos a la inicialización doble
+    window.onload = init; 
 </script>
 </body>
+
 </html>
